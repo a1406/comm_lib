@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,6 +12,7 @@ static char *saved_pwd_path;
 int change_to_deamon()
 {
 	saved_pwd_path = get_current_dir_name();
+	signal(SIGHUP,SIG_IGN); 
 	int pid;
 //	int i;
 	pid = fork();
