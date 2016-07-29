@@ -190,7 +190,8 @@ int add_timer(struct timeval t, struct event *event_timer, void *arg)
 			return (-1);
 		}
 		event_timer->ev_arg = event_timer;
-	} else if (!(event_timer->ev_flags & EVLIST_TIMEOUT)) {
+	} else if (!(event_timer->ev_flags & EVLIST_TIMEOUT)
+		&& !(event_timer->ev_flags & EVLIST_ACTIVE)) {
 		evtimer_assign(event_timer, base, event_timer->ev_callback, arg);
 	}
 
