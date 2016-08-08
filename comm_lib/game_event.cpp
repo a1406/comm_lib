@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+#include <pthread.h>
 #include <netinet/tcp.h>
 #include "event2/event.h"
 #include "util-internal.h"
@@ -365,27 +366,39 @@ fail:
 	return (-1);	
 }
 
-static const char* dated_format(
+static const char* dated_r_format(
     const log4c_layout_t*  	a_layout,
     const log4c_logging_event_t*a_event)
 {
-    static char buffer[1024];
+    int n, i;
+    struct tm	tm;
 
-    struct tm   tm;
-    localtime_r(&a_event->evt_timestamp.tv_sec, &tm);
-    snprintf(buffer, sizeof(buffer), "%04d%02d%02d %02d:%02d:%02d.%03ld %-8s %s\n",
-             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-             tm.tm_hour, tm.tm_min, tm.tm_sec,
-             a_event->evt_timestamp.tv_usec / 1000,
-             log4c_priority_to_string(a_event->evt_priority),
-             a_event->evt_msg);
-    return buffer;
+    gmtime_r(&a_event->evt_timestamp.tv_sec, &tm);
+
+    n = snprintf(a_event->evt_buffer.buf_data, a_event->evt_buffer.buf_size,
+		 "%04d%02d%02d %02d:%02d:%02d.%03ld %-8s %s\n",
+		 tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+		 tm.tm_hour, tm.tm_min, tm.tm_sec,
+		 a_event->evt_timestamp.tv_usec / 1000,
+		 log4c_priority_to_string(a_event->evt_priority),
+		 a_event->evt_msg);
+
+    if (n >= (int)a_event->evt_buffer.buf_size) {
+	/*
+	 * append '...' at the end of the message to show it was
+	 * trimmed
+	 */
+	for (i = 0; i < 3; i++)
+	    a_event->evt_buffer.buf_data[a_event->evt_buffer.buf_size - 4 + i] = '.';
+    }
+
+    return a_event->evt_buffer.buf_data;
 }
 
 /*******************************************************************************/
 static const log4c_layout_type_t log4c_layout_type_test = {
-  "mydated",
-  dated_format,
+  "mydated_r",
+  dated_r_format,
 };
 
 
